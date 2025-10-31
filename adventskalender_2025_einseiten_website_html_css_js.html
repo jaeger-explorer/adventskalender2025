@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Adventskalender 2025 – Für meine wunderbare Frau</title>
+  <meta name="description" content="Ein liebevoller Online-Adventskalender für 2025 – 24 Türchen mit Bildern und Sprüchen." />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Nunito+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin:0;
+      font-family:'Nunito Sans', sans-serif;
+      color:#fffaf2;
+      background: radial-gradient(circle at top left, #641220, #1b1b2f 60%);
+      background-attachment: fixed;
+      min-height:100vh; overflow-x:hidden;
+    }
+    header{ text-align:center; padding:2rem 1rem; background:linear-gradient(to bottom, rgba(100,18,32,0.8), transparent); }
+    h1{font-family:'Cormorant Garamond',serif;font-size:2.2rem;margin:.25rem 0;color:#ffe6b3;text-shadow:0 0 10px rgba(255,190,120,.4);}
+    .sub{color:#9ca3af;}
+    .grid{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+      gap:14px;max-width:900px;margin:1.5rem auto;padding:0 1rem;
+    }
+    .card{
+      aspect-ratio:1;position:relative;border-radius:18px;
+      background:rgba(255,255,255,0.08);
+      border:1px solid rgba(255,215,150,0.25);
+      box-shadow:0 0 12px rgba(255,200,150,0.15);
+      cursor:pointer;overflow:hidden;transition:transform .15s, box-shadow .3s;
+    }
+    .card:hover{transform:translateY(-4px) scale(1.03);box-shadow:0 0 18px rgba(255,215,150,0.35);}
+    .card.locked{opacity:.7;cursor:not-allowed;filter:grayscale(0.3);}
+    .number{font-family:'Cormorant Garamond',serif;font-size:2rem;}
+    .card-inner{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
+    .date-tag{position:absolute;top:6px;left:6px;font-size:.75rem;background:rgba(255,215,150,0.25);color:#fffaf2;padding:.25rem .5rem;border-radius:10px;}
+    .status{position:absolute;bottom:6px;right:6px;font-size:.7rem;background:#ffe6b3;color:#641220;padding:.25rem .5rem;border-radius:10px;display:none;}
+    .opened .status{display:inline-block;}
+    dialog{display:none;border:none;border-radius:20px;padding:0;background:#0b1220;color:#f8fafc;width:min(92vw,800px);max-height:85vh;overflow:hidden;}
+    dialog[open]{display:flex;flex-direction:column;}
+    .modal-media{height:clamp(220px,40vh,340px);background:#000;flex-shrink:0;}
+    .modal-media img{width:100%;max-width:100%;height:100%;object-fit:contain;border-radius:20px 20px 0 0;display:block;-webkit-user-select:none;user-select:none;filter:brightness(1.05) saturate(1.2) contrast(0.95) sepia(0.15);transition:filter .4s ease-in-out;}
+    .modal-body{padding:1rem;flex:1;overflow-y:auto;font-size:1rem;line-height:1.6;text-align:center;}
+    .modal-body h2{font-family:'Cormorant Garamond',serif;margin-top:0;color:#ffe6b3;}
+    .btn{margin:1rem;border:none;padding:.6rem 1rem;border-radius:12px;font-weight:600;cursor:pointer;}
+    .btn-close{background:#111827;color:#f8fafc;}
+    footer{text-align:center;color:#94a3b8;padding:2rem 1rem;font-size:.9rem;}
+  .snow{position:fixed;inset:0;pointer-events:none;z-index:0}
+  </style>
+</head>
+<body>
+  <canvas class="snow" id="snow" aria-hidden="true"></canvas>
+  <header>
+    <div class="year-badge">Adventskalender 2025</div>
+    <h1>Für die beste Frau & Mama der Welt</h1>
+    <p class="sub">24 kleine Herzens-Momente – jedes Türchen öffnet sich am passenden Tag.</p>
+  </header>
+
+  <main class="grid" id="grid"></main>
+
+  <dialog id="modal">
+    <div class="modal-media"><img id="modalImg" alt=""></div>
+    <div class="modal-body">
+      <h2 id="modalTitle"></h2>
+      <p id="modalText"></p>
+      <button class="btn btn-close" id="closeBtn" type="button">Schließen</button>
+    </div>
+  </dialog>
+
+  <footer>❤️ Mit Liebe gemacht – ersetze die Bilder in <code>images/</code> durch deine eigenen.</footer>
+
+  <script>
+    function nowInBerlin(){
+      var dtf=new Intl.DateTimeFormat('de-DE',{timeZone:'Europe/Berlin',year:'numeric',month:'numeric',day:'numeric'});
+      var p={}, parts=dtf.formatToParts(new Date());
+      for(var i=0;i<parts.length;i++){var t=parts[i];if(t.type==='year')p.y=parseInt(t.value);if(t.type==='month')p.m=parseInt(t.value);if(t.type==='day')p.d=parseInt(t.value);}return p;
+    }
+    var params=new URLSearchParams(location.search);
+    var TEST_MODE=params.has('test')||params.get('mode')==='test';
+    var FORCE_OPEN_DAY=parseInt(params.get('open'))||null;
+    if(TEST_MODE||FORCE_OPEN_DAY){
+      window.addEventListener('DOMContentLoaded',function(){
+        var sub=document.querySelector('.sub');
+        if(sub){sub.insertAdjacentHTML('beforeend',' <strong style="color:#fde68a">['+(TEST_MODE?'Testmodus aktiv – alle Türchen klickbar':'Türchen-Test #'+FORCE_OPEN_DAY)+']</strong>');}
+      });
+    }
+
+    function isOpenable(day){
+      if(TEST_MODE)return true;
+      if(FORCE_OPEN_DAY===day)return true;
+      var n=nowInBerlin();
+      if(n.y>2025)return true;
+      if(n.y<2025)return false;
+      if(n.m<12)return false;
+      if(n.m>12)return true;
+      return n.d>=day;
+    }
+
+    var doors=[
+      [1,'1. Dezember','images/01.jpg','Dein Lächeln macht unsere kleine Familie hell wie Lichterketten.'],
+      [2,'2. Dezember','images/02.jpg','Mit dir fühlt sich selbst ein grauer Tag wie erster Schnee an.'],
+      [3,'3. Dezember','images/03.jpg','Du bist die Ruhe, die uns trägt – und die Wärme, die bleibt.'],
+      [4,'4. Dezember','images/04.jpg','Danke, dass du jeden Tag Liebe in unser Zuhause zauberst.'],
+      [5,'5. Dezember','images/05.jpg','Du bist nicht nur meine Frau, du bist mein Lieblingsmensch.'],
+      [6,'6. Dezember','images/06.jpg','Nikolaus-Wunder: Dich zu haben – und unsere kleine Entdeckerin an deiner Seite.'],
+      [7,'7. Dezember','images/07.jpg','Deine Geduld macht aus Alltag kleine Wunder.'],
+      [8,'8. Dezember','images/08.jpg','Wenn unsere Tochter lacht, höre ich deine Stärke darin klingen.'],
+      [9,'9. Dezember','images/09.jpg','Mit dir ist Kuscheln eine Superkraft – Mama-Magie eben.'],
+      [10,'10. Dezember','images/10.jpg','Du machst uns reich an Momenten, nicht an Dingen.'],
+      [11,'11. Dezember','images/11.jpg','Jeder Blick von dir sagt: „Ich bin da“ – und alles ist gut.'],
+      [12,'12. Dezember','images/12.jpg','Danke, Super-Mama: Du liebst groß und leise – beides bewundere ich.'],
+      [13,'13. Dezember','images/13.jpg','Dein Herz ist unser Zuhause.'],
+      [14,'14. Dezember','images/14.jpg','Du machst aus Müde-Tagen Märchenstunden.'],
+      [15,'15. Dezember','images/15.jpg','Mit dir lernt unsere Kleine, wie sich Liebe anfühlt: sicher und warm.'],
+      [16,'16. Dezember','images/16.jpg','Ich liebe dich – heute, morgen und jeden Advent darüber hinaus.'],
+      [17,'17. Dezember','images/17.jpg','Du bist die beste Entscheidung meines Lebens.'],
+      [18,'18. Dezember','images/18.jpg','Dein Lachen ist mein Lieblings-Weihnachtslied.'],
+      [19,'19. Dezember','images/19.jpg','Zwischen Windeln, Wäsche und Wunder: Du strahlst.'],
+      [20,'20. Dezember','images/20.jpg','Danke für jedes Gute-Nacht-Küsschen – für sie und für mich.'],
+      [21,'21. Dezember','images/21.jpg','Mit dir fühlt sich Ankommen wie Zuhause an.'],
+      [22,'22. Dezember','images/22.jpg','Du machst uns mutig. Und sanft. Und glücklich.'],
+      [23,'23. Dezember','images/23.jpg','Noch einmal schlafen – ich bin so dankbar, dass wir wir sind.'],
+      [24,'24. Dezember','images/24.jpg','Frohe Weihnachten, meine Liebe. Du bist unser größtes Geschenk.']
+    ];
+
+    var grid=document.getElementById('grid');
+    var opened=JSON.parse(localStorage.getItem('advent2025_opened')||'{}');
+
+    doors.forEach(function(item){
+      var day=item[0],title=item[1],img=item[2],text=item[3];
+      var card=document.createElement('button');
+      card.className='card';
+      card.innerHTML='<span class="date-tag">'+('0'+day).slice(-2)+'.12.2025</span><div class="card-inner"><span class="number">'+day+'</span></div><span class="status">geöffnet</span>';
+      if(!isOpenable(day))card.classList.add('locked');
+      if(opened[day])card.classList.add('opened');
+      card.addEventListener('click',function(){
+        if(!isOpenable(day)){alert('Dieses Türchen öffnet sich am '+('0'+day).slice(-2)+'. Dezember 2025.');return;}
+        openModal(day,title,img,text);
+        opened[day]=true;localStorage.setItem('advent2025_opened',JSON.stringify(opened));
+        card.classList.add('opened');
+      });
+      grid.appendChild(card);
+    });
+
+    var modal=document.getElementById('modal');
+    var modalImg=document.getElementById('modalImg');
+    var modalTitle=document.getElementById('modalTitle');
+    var modalText=document.getElementById('modalText');
+    var closeBtn=document.getElementById('closeBtn');
+    function openModal(day,title,img,text){
+      modalImg.src=img;modalTitle.textContent=title;modalText.textContent=text;
+      try{modal.showModal();}catch(e){modal.setAttribute('open','');}
+    }
+    closeBtn.onclick=function(){modal.close();};
+    modal.addEventListener('mousedown',function(e){
+      var r=modal.getBoundingClientRect();
+      var inside=(r.top<=e.clientY&&e.clientY<=r.bottom&&r.left<=e.clientX&&e.clientX<=r.right);
+      if(!inside) modal.close();
+    });
+    modal.addEventListener('cancel',function(e){ e.preventDefault(); modal.close(); });
+
+    if(TEST_MODE){
+      window.addEventListener('DOMContentLoaded',function(){
+        var footer=document.querySelector('footer');
+        if(footer&&!document.querySelector('.reset-btn')){
+          var btn=document.createElement('button');
+          btn.className='reset-btn';
+          btn.textContent='🔄 Fortschritt zurücksetzen';
+          btn.style.cssText='margin-top:1rem;padding:.6rem 1rem;border:none;border-radius:10px;font-weight:600;background:#ef4444;color:white;cursor:pointer;';
+          btn.onclick=function(){
+            if(confirm('Möchtest du wirklich alle geöffneten Türchen zurücksetzen?')){
+              localStorage.removeItem('advent2025_opened');
+              location.reload();
+            }
+          };
+          footer.appendChild(btn);
+        }
+      });
+    }
+      // ——— Subtiler Schnee (leichtgewichtig) ———
+    ;(function snow(){
+      var c=document.getElementById('snow'); if(!c) return; var ctx=c.getContext('2d');
+      var w,h,flakes=[]; function resize(){w=c.width=innerWidth; h=c.height=innerHeight;}
+      function reset(f){ f.x=Math.random()*w; f.y=-10; f.r=Math.random()*2+0.8; f.s=Math.random()*0.6+0.3; f.a=Math.random()*Math.PI*2; }
+      function init(){ flakes = Array.from({length:120},()=>({x:0,y:0,r:0,s:0,a:0})); flakes.forEach(reset); }
+      function draw(){ ctx.clearRect(0,0,w,h); ctx.fillStyle='rgba(255,255,255,0.85)';
+        for(var i=0;i<flakes.length;i++){ var f=flakes[i]; f.y+=f.s*1.5; f.x+=Math.cos(f.a+=0.01)*0.6; if(f.y>h+5) reset(f); ctx.beginPath(); ctx.arc(f.x,f.y,f.r,0,Math.PI*2); ctx.fill(); }
+        requestAnimationFrame(draw);
+      }
+      addEventListener('resize',resize,{passive:true}); resize(); init(); draw();
+    })();
+  </script>
+</body>
+</html>
