@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ein kleines Weihnachtsgeschenk</title>
+  <meta name="description" content="Ein winterlicher Gruß – ein kleines Geschenk für Mama." />
+
+  <style>
+    :root{
+  --bg1:#1b0f14;          /* dunkles warmes Bordeaux */
+  --bg2:#2a141b;          /* Rosé-Winter-Nacht */
+  --card: rgba(255,228,230,.14);
+  --card2: rgba(255,228,230,.08);
+  --text: rgba(255,245,246,.96);
+  --muted: rgba(255,230,234,.82);
+  --line: rgba(255,215,221,.22);
+  --gold: #e6a8b4;        /* Roségold */
+  --shadow: 0 26px 70px rgba(0,0,0,.45);
+  --radius: 22px;
+}
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color: var(--text);
+      background:
+        radial-gradient(1200px 700px at 18% 18%, rgba(255,255,255,.12), transparent 60%),
+        radial-gradient(1000px 700px at 88% 22%, rgba(246,216,138,.10), transparent 55%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      overflow-x:hidden;
+    }
+
+    /* Canvas snow */
+    canvas#snow{
+      position:fixed;
+      inset:0;
+      z-index:0;
+      pointer-events:none;
+    }
+
+    .wrap{
+      min-height:100%;
+      display:grid;
+      place-items:center;
+      padding: 28px 18px;
+      position:relative;
+      z-index:1; /* above canvas */
+    }
+
+    .card{
+      width:min(980px, 100%);
+      background: linear-gradient(180deg, var(--card), var(--card2));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      overflow:hidden;
+      position:relative;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 14px;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--line);
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      font-weight:600;
+      letter-spacing:.2px;
+    }
+    .dot{
+      width:10px; height:10px; border-radius:999px;
+      background: radial-gradient(circle at 30% 30%, #fff, var(--gold));
+      box-shadow: 0 0 18px rgba(246,216,138,.35);
+    }
+    .mini{
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    /* Door wrapper */
+    .doorStage{
+      position:relative;
+      min-height: 520px;
+      display:grid;
+      place-items:center;
+      padding: 26px 22px 22px;
+      perspective: 1200px;
+    }
+
+    /* The content behind the door */
+    .behind{
+      width:100%;
+      opacity:0;
+      transform: translateY(10px);
+      transition: opacity .5s ease, transform .6s ease;
+    }
+    .revealed .behind{
+      opacity:1;
+      transform: translateY(0);
+      transition-delay: .15s;
+    }
+
+    .content{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 26px;
+      align-items:center;
+    }
+    @media (max-width: 880px){
+      .doorStage{ min-height: unset; }
+      .content{ grid-template-columns: 1fr; }
+    }
+
+    .imageWrap{
+      display:grid;
+      place-items:center;
+      padding: 10px;
+    }
+
+    .frame{
+      width:min(540px, 100%);
+      border-radius: 26px;
+      padding: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.05));
+      border: 1px solid rgba(255,255,255,.16);
+      box-shadow: 0 18px 45px rgba(0,0,0,.28);
+      position:relative;
+    }
+    .frame::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      border-radius: 28px;
+      background: radial-gradient(350px 180px at 20% 0%, rgba(246,216,138,.18), transparent 60%);
+      pointer-events:none;
+      z-index:0;
+    }
+    img.hero{
+      width:100%;
+      height:auto;
+      display:block;
+      border-radius: 18px;
+      position:relative;
+      z-index:1;
+    }
+
+    .copy{
+      padding: 8px 10px 4px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap: 14px;
+    }
+    h1{
+      margin:0;
+      font-size: clamp(24px, 3.2vw, 38px);
+      line-height:1.15;
+      letter-spacing:.2px;
+    }
+    .sub{
+      margin:0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height:1.6;
+    }
+
+    .letter{
+      margin-top: 8px;
+      padding: 18px 18px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+    }
+    .letter p{
+      margin:0 0 12px 0;
+      color: rgba(255,255,255,.90);
+      font-size: 16px;
+      line-height:1.75;
+    }
+    .sig{
+      margin-top: 6px;
+      font-weight:700;
+      letter-spacing:.2px;
+    }
+
+    .footer{
+      padding: 14px 22px 20px;
+      border-top: 1px solid var(--line);
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      justify-content:space-between;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.10);
+    }
+
+    /* Door */
+    .door{
+      position:absolute;
+      inset: 18px 22px 22px;
+      border-radius: 22px;
+      transform-style: preserve-3d;
+      transform-origin: left center;
+      background:
+        radial-gradient(800px 250px at 15% 10%, rgba(255,255,255,.18), transparent 55%),
+        linear-gradient(135deg, rgba(246,216,138,.18), rgba(255,255,255,.06)),
+        linear-gradient(180deg, rgba(255,255,255,.12), rgba(0,0,0,.10));
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: 0 22px 60px rgba(0,0,0,.35);
+      overflow:hidden;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      transition: transform 1.05s cubic-bezier(.2,.8,.2,1), opacity .5s ease;
+      z-index:5;
+    }
+
+    .door::after{
+      /* subtle pattern */
+      content:"";
+      position:absolute;
+      inset:0;
+      background-image:
+        radial-gradient(2px 2px at 22px 28px, rgba(255,255,255,.45) 60%, transparent 61%),
+        radial-gradient(2px 2px at 80px 120px, rgba(255,255,255,.25) 60%, transparent 61%),
+        radial-gradient(1.5px 1.5px at 140px 60px, rgba(255,255,255,.35) 60%, transparent 61%),
+        radial-gradient(1.5px 1.5px at 220px 140px, rgba(255,255,255,.20) 60%, transparent 61%);
+      background-size: 260px 180px;
+      opacity:.55;
+      pointer-events:none;
+    }
+
+    .doorInner{
+      position:relative;
+      z-index:2;
+      text-align:center;
+      padding: 22px;
+      max-width: 520px;
+    }
+
+    .doorTitle{
+      font-size: clamp(22px, 3vw, 34px);
+      margin:0 0 10px 0;
+      letter-spacing:.2px;
+    }
+    .doorText{
+      margin:0 0 16px 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height:1.6;
+    }
+
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding: 12px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(0,0,0,.16);
+      color: var(--text);
+      font-weight: 700;
+      letter-spacing:.2px;
+      cursor:pointer;
+      user-select:none;
+      transition: transform .15s ease, background .2s ease;
+    }
+    .btn:hover{ transform: translateY(-1px); background: rgba(0,0,0,.20); }
+    .btn:active{ transform: translateY(0px) scale(.99); }
+
+    .handle{
+      width: 22px; height: 22px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #fff, var(--gold));
+      box-shadow: 0 0 16px rgba(246,216,138,.35);
+      position:absolute;
+      right: 30px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .revealed .door{
+      transform: rotateY(-105deg);
+    }
+    /* after door opens, fade it out a bit so it doesn't distract */
+    .revealed .door{
+      opacity:.25;
+      pointer-events:none;
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      .door, .behind{ transition:none !important; }
+      canvas#snow{ display:none; }
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="snow" aria-hidden="true"></canvas>
+
+  <main class="wrap">
+    <section class="card" role="article" aria-label="Weihnachtliches Geschenk">
+      <header class="topbar">
+        <div class="badge">
+          <span class="dot" aria-hidden="true"></span>
+          <span>Für Mama</span>
+        </div>
+        <div class="mini">Ein kleiner winterlicher Vorgeschmack ✨</div>
+      </header>
+
+      <div class="doorStage" id="stage">
+        <!-- Tür (click to open) -->
+        <div class="door" id="door" role="button" tabindex="0" aria-label="Geschenk öffnen">
+          <div class="handle" aria-hidden="true"></div>
+          <div class="doorInner">
+            <h2 class="doorTitle">🎁 Ein Geschenk für dich</h2>
+            <p class="doorText">
+              Tippe auf „Geschenk öffnen“, um den winterlichen Gruß zu entdecken.
+            </p>
+            <div class="btn" id="openBtn" aria-hidden="true">Geschenk öffnen ✨</div>
+          </div>
+        </div>
+
+        <!-- Inhalt dahinter -->
+        <div class="behind" id="behind">
+          <div class="content">
+            <div class="imageWrap">
+              <div class="frame">
+                <!-- Bildname hier anpassen, falls nötig -->
+                <img class="hero" src="leni.jpg" alt="Geschenkbild" />
+              </div>
+            </div>
+
+            <div class="copy">
+              <h1>Ein kleines Geschenk – von Herzen.</h1>
+              <p class="sub">
+                Weil du einfach die beste Mama bist, sollte dieses Weihnachten etwas ganz Besonderes für dich sein.
+              </p>
+
+              <div class="letter">
+                <p>
+				❄️ Frohe Weihnachten ❄️ <br/>
+                  Liebe Mama,<br><br>
+                  damit du mich immer bei dir tragen kannst, habe ich dir dieses kleine Geschenk ausgesucht.
+                  Leider war das Christkind dieses Jahr ein bisschen spät – deshalb bekommst du hier schon mal
+                  einen kleinen Vorgeschmack.
+                </p>
+                <p>
+                  Du sollst wissen, dass ich dich ganz, ganz doll lieb habe.
+Danke, dass du immer für mich da bist.
+Du bist die allerbeste Mama auf der ganzen Welt.
+                </p>
+                <p class="sig">
+                  Ich liebe dich!<br>
+                  <strong>Deine Leni</strong>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="footer">
+        <span class="pill">❄️ Frohe Weihnachten ❄️</span>
+        <span style="opacity:.9;">✨</span>
+      </footer>
+    </section>
+  </main>
+
+  <script>
+    // --- Türchen / Öffnen ---
+    const stage = document.getElementById('stage');
+    const door  = document.getElementById('door');
+    const openBtn = document.getElementById('openBtn');
+
+    function openDoor(){
+      stage.classList.add('revealed');
+    }
+
+    door.addEventListener('click', openDoor);
+    openBtn.addEventListener('click', (e) => { e.stopPropagation(); openDoor(); });
+
+    door.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openDoor();
+      }
+    });
+
+    // --- Schneeflocken (Canvas) ---
+    const canvas = document.getElementById('snow');
+    const ctx = canvas.getContext('2d');
+
+    function resize(){
+      canvas.width = window.innerWidth * devicePixelRatio;
+      canvas.height = window.innerHeight * devicePixelRatio;
+      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const flakes = [];
+    const FLAKE_COUNT = Math.min(160, Math.floor(window.innerWidth / 8));
+
+    function rand(min, max){ return Math.random() * (max - min) + min; }
+
+    function makeFlake(initial=false){
+      const size = rand(1.2, 4.2);
+      return {
+        x: rand(0, window.innerWidth),
+        y: initial ? rand(0, window.innerHeight) : rand(-40, -10),
+        r: size,
+        vy: rand(0.6, 2.2),
+        vx: rand(-0.6, 0.6),
+        drift: rand(0.002, 0.01),
+        phase: rand(0, Math.PI * 2),
+        alpha: rand(0.35, 0.95)
+      };
+    }
+
+    for(let i=0;i<FLAKE_COUNT;i++) flakes.push(makeFlake(true));
+
+    function draw(){
+      ctx.clearRect(0,0,window.innerWidth, window.innerHeight);
+
+      for(const f of flakes){
+        f.phase += f.drift;
+        f.x += f.vx + Math.sin(f.phase) * 0.35;
+        f.y += f.vy;
+
+        // wrap
+        if (f.y > window.innerHeight + 20) {
+          Object.assign(f, makeFlake(false));
+        }
+        if (f.x < -20) f.x = window.innerWidth + 20;
+        if (f.x > window.innerWidth + 20) f.x = -20;
+
+        ctx.globalAlpha = f.alpha;
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 220, 226, 0.95)";
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      requestAnimationFrame(draw);
+    }
+    draw();
+  </script>
+</body>
+</html>
